@@ -1,34 +1,20 @@
 "use client"
 
-import { Plus, MessageSquare, Trash2, Menu, X } from "lucide-react"
+import { Plus, Menu, X } from "lucide-react"
 import { NexoLogo } from "./nexo-logo"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
-export interface Conversation {
-  id: string
-  title: string
-  createdAt: Date
-}
-
 interface ChatSidebarProps {
-  conversations: Conversation[]
-  activeConversationId: string | null
-  onNewConversation: () => void
-  onSelectConversation: (id: string) => void
-  onDeleteConversation: (id: string) => void
   isOpen: boolean
   onToggle: () => void
+  onNewConversation: () => void
 }
 
 export function ChatSidebar({
-  conversations,
-  activeConversationId,
-  onNewConversation,
-  onSelectConversation,
-  onDeleteConversation,
   isOpen,
   onToggle,
+  onNewConversation,
 }: ChatSidebarProps) {
   return (
     <>
@@ -72,47 +58,14 @@ export function ChatSidebar({
           </Button>
         </div>
 
-        {/* Conversations list */}
+        {/* Placeholder for future conversation list */}
         <div className="flex-1 overflow-y-auto px-3 pb-3">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-2 py-2">
             Conversas recentes
           </p>
-          <div className="space-y-1">
-            {conversations.length === 0 ? (
-              <p className="text-sm text-muted-foreground px-2 py-4 text-center">
-                Nenhuma conversa ainda
-              </p>
-            ) : (
-              conversations.map((conversation) => (
-                <div
-                  key={conversation.id}
-                  className={cn(
-                    "group flex items-center gap-2 px-3 py-2.5 rounded-lg cursor-pointer transition-colors",
-                    activeConversationId === conversation.id
-                      ? "bg-sidebar-accent text-sidebar-foreground"
-                      : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-                  )}
-                  onClick={() => onSelectConversation(conversation.id)}
-                >
-                  <MessageSquare className="h-4 w-4 flex-shrink-0" />
-                  <span className="flex-1 truncate text-sm">
-                    {conversation.title}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/20 hover:text-destructive"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onDeleteConversation(conversation.id)
-                    }}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              ))
-            )}
-          </div>
+          <p className="text-sm text-muted-foreground px-2 py-4 text-center">
+            Nenhuma conversa ainda
+          </p>
         </div>
 
         {/* Footer */}

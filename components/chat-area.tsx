@@ -1,25 +1,16 @@
 "use client"
 
 import { useRef, useEffect } from "react"
-import { Bot, User } from "lucide-react"
+import { Bot, User, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
-
-export interface Message {
-  id: string
-  content: string
-  role: "user" | "assistant"
-  attachments?: {
-    type: "image" | "file"
-    name: string
-    url?: string
-  }[]
-}
+import type { Message } from "@/app/page"
 
 interface ChatAreaProps {
   messages: Message[]
+  isLoading?: boolean
 }
 
-export function ChatArea({ messages }: ChatAreaProps) {
+export function ChatArea({ messages, isLoading }: ChatAreaProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -33,7 +24,7 @@ export function ChatArea({ messages }: ChatAreaProps) {
           <div
             key={message.id}
             className={cn(
-              "flex gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300",
+              "flex gap-4",
               message.role === "user" ? "justify-end" : "justify-start"
             )}
           >
@@ -51,36 +42,6 @@ export function ChatArea({ messages }: ChatAreaProps) {
                   : "bg-card border border-border"
               )}
             >
-              {/* Attachments */}
-              {message.attachments && message.attachments.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {message.attachments.map((attachment, index) => (
-                    <div
-                      key={index}
-                      className={cn(
-                        "rounded-lg overflow-hidden",
-                        attachment.type === "image"
-                          ? "max-w-[200px]"
-                          : "bg-muted px-3 py-2 text-sm"
-                      )}
-                    >
-                      {attachment.type === "image" && attachment.url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={attachment.url}
-                          alt={attachment.name}
-                          className="w-full h-auto rounded-lg"
-                        />
-                      ) : (
-                        <span className="text-muted-foreground">
-                          {attachment.name}
-                        </span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-              
               <p className="text-sm leading-relaxed whitespace-pre-wrap">
                 {message.content}
               </p>
@@ -93,6 +54,19 @@ export function ChatArea({ messages }: ChatAreaProps) {
             )}
           </div>
         ))}
+
+        {/* Loading indicator */}
+        {isLoading && (
+          <div className="flex gap-4 justify-start">
+            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center">
+              <Loader2 className="h-4 w-4 text-accent animate-spin" />
+            </div>
+            <div className="bg-card border border-border rounded-2xl px-4 py-3">
+              <p className="text-sm text-muted-foreground">Pensando...</p>
+            </div>
+          </div>
+        )}
+
         <div ref={messagesEndRef} />
       </div>
     </div>
