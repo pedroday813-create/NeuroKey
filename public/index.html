@@ -3,433 +3,57 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#0f0f12">
+  <meta name="theme-color" content="#0a0a0f">
   <title>Nexo - IA Inteligente</title>
-  <meta name="description" content="Nexo é uma IA leve e inteligente para criar, descobrir e resolver.">
+  <meta name="description" content="Nexo e uma IA leve e inteligente para criar, descobrir e resolver.">
+  <link rel="stylesheet" href="styles.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    :root {
-      --bg: #0a0a0c;
-      --bg-card: #111114;
-      --bg-sidebar: #08080a;
-      --border: #1a1a1f;
-      --text: #f5f5f5;
-      --text-muted: #888;
-      --accent: #3ecf8e;
-      --accent-dark: #2a9d6a;
-    }
-
-    body {
-      font-family: 'Inter', sans-serif;
-      background-color: var(--bg);
-      color: var(--text);
-      height: 100vh;
-      overflow: hidden;
-    }
-
-    /* Layout */
-    .app {
-      display: flex;
-      height: 100vh;
-    }
-
-    /* Sidebar */
-    .sidebar {
-      width: 280px;
-      background-color: var(--bg-sidebar);
-      border-right: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      flex-shrink: 0;
-    }
-
-    .sidebar-header {
-      padding: 20px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .logo-icon {
-      width: 32px;
-      height: 32px;
-    }
-
-    .logo-text {
-      font-size: 20px;
-      font-weight: 700;
-      color: var(--text);
-    }
-
-    .new-chat-btn {
-      margin: 16px;
-      padding: 12px 16px;
-      background-color: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      color: var(--text);
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      transition: background-color 0.2s;
-    }
-
-    .new-chat-btn:hover {
-      background-color: var(--border);
-    }
-
-    .sidebar-content {
-      flex: 1;
-      padding: 0 16px;
-      overflow-y: auto;
-    }
-
-    .sidebar-label {
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      padding: 8px 8px;
-    }
-
-    .sidebar-empty {
-      text-align: center;
-      color: var(--text-muted);
-      font-size: 14px;
-      padding: 24px 8px;
-    }
-
-    .sidebar-footer {
-      padding: 16px;
-      border-top: 1px solid var(--border);
-      text-align: center;
-    }
-
-    .sidebar-footer p {
-      font-size: 11px;
-      color: var(--text-muted);
-    }
-
-    /* Main content */
-    .main {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      min-width: 0;
-    }
-
-    /* Welcome screen */
-    .welcome {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-    }
-
-    .welcome-logo {
-      width: 80px;
-      height: 80px;
-      margin-bottom: 24px;
-    }
-
-    .welcome h1 {
-      font-size: 32px;
-      font-weight: 700;
-      margin-bottom: 8px;
-    }
-
-    .welcome p {
-      color: var(--text-muted);
-      font-size: 16px;
-      margin-bottom: 40px;
-    }
-
-    .suggestions {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
-      max-width: 500px;
-      width: 100%;
-    }
-
-    .suggestion {
-      padding: 16px;
-      background-color: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      cursor: pointer;
-      transition: all 0.2s;
-      text-align: left;
-    }
-
-    .suggestion:hover {
-      border-color: var(--accent);
-      background-color: rgba(62, 207, 142, 0.05);
-    }
-
-    .suggestion-title {
-      font-size: 14px;
-      font-weight: 500;
-      margin-bottom: 4px;
-    }
-
-    .suggestion-desc {
-      font-size: 12px;
-      color: var(--text-muted);
-    }
-
-    /* Chat area */
-    .chat-area {
-      flex: 1;
-      overflow-y: auto;
-      padding: 24px;
-      display: none;
-    }
-
-    .chat-area.active {
-      display: block;
-    }
-
-    .messages {
-      max-width: 700px;
-      margin: 0 auto;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-
-    .message {
-      display: flex;
-      gap: 12px;
-    }
-
-    .message.user {
-      flex-direction: row-reverse;
-    }
-
-    .message-avatar {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-
-    .message.assistant .message-avatar {
-      background-color: rgba(62, 207, 142, 0.2);
-      color: var(--accent);
-    }
-
-    .message.user .message-avatar {
-      background-color: var(--text);
-      color: var(--bg);
-    }
-
-    .message-content {
-      max-width: 80%;
-      padding: 12px 16px;
-      border-radius: 16px;
-      font-size: 14px;
-      line-height: 1.6;
-    }
-
-    .message.user .message-content {
-      background-color: var(--text);
-      color: var(--bg);
-    }
-
-    .message.assistant .message-content {
-      background-color: var(--bg-card);
-      border: 1px solid var(--border);
-    }
-
-    .loading {
-      display: flex;
-      gap: 12px;
-      display: none;
-    }
-
-    .loading.active {
-      display: flex;
-    }
-
-    .loading-dots {
-      display: flex;
-      gap: 4px;
-      padding: 12px 16px;
-      background-color: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-    }
-
-    .loading-dot {
-      width: 6px;
-      height: 6px;
-      background-color: var(--accent);
-      border-radius: 50%;
-      animation: bounce 1.4s infinite ease-in-out both;
-    }
-
-    .loading-dot:nth-child(1) { animation-delay: -0.32s; }
-    .loading-dot:nth-child(2) { animation-delay: -0.16s; }
-
-    @keyframes bounce {
-      0%, 80%, 100% { transform: scale(0); }
-      40% { transform: scale(1); }
-    }
-
-    /* Input area */
-    .input-area {
-      padding: 16px 24px 24px;
-      border-top: 1px solid var(--border);
-      background-color: rgba(10, 10, 12, 0.8);
-      backdrop-filter: blur(10px);
-    }
-
-    .input-container {
-      max-width: 700px;
-      margin: 0 auto;
-    }
-
-    .input-box {
-      display: flex;
-      align-items: flex-end;
-      gap: 8px;
-      background-color: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 8px;
-    }
-
-    .input-box textarea {
-      flex: 1;
-      background: transparent;
-      border: none;
-      outline: none;
-      color: var(--text);
-      font-family: inherit;
-      font-size: 14px;
-      resize: none;
-      padding: 8px;
-      min-height: 40px;
-      max-height: 200px;
-    }
-
-    .input-box textarea::placeholder {
-      color: var(--text-muted);
-    }
-
-    .send-btn {
-      width: 40px;
-      height: 40px;
-      background-color: var(--border);
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: background-color 0.2s;
-      flex-shrink: 0;
-    }
-
-    .send-btn.active {
-      background-color: var(--accent);
-    }
-
-    .send-btn.active:hover {
-      background-color: var(--accent-dark);
-    }
-
-    .send-btn svg {
-      width: 18px;
-      height: 18px;
-      color: var(--text-muted);
-    }
-
-    .send-btn.active svg {
-      color: var(--bg);
-    }
-
-    .input-hint {
-      text-align: center;
-      font-size: 11px;
-      color: var(--text-muted);
-      margin-top: 12px;
-    }
-
-    /* Responsive */
-    @media (max-width: 768px) {
-      .sidebar {
-        display: none;
-      }
-
-      .suggestions {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    /* Scrollbar */
-    ::-webkit-scrollbar {
-      width: 6px;
-    }
-
-    ::-webkit-scrollbar-track {
-      background: transparent;
-    }
-
-    ::-webkit-scrollbar-thumb {
-      background: var(--border);
-      border-radius: 3px;
-    }
-  </style>
 </head>
 <body>
   <div class="app">
     <!-- Sidebar -->
-    <aside class="sidebar">
+    <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
-        <svg class="logo-icon" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="50" cy="50" r="45" stroke="#3ecf8e" stroke-width="4" fill="none"/>
-          <circle cx="30" cy="35" r="6" fill="#3ecf8e"/>
-          <circle cx="70" cy="35" r="6" fill="#3ecf8e"/>
-          <circle cx="50" cy="70" r="6" fill="#3ecf8e"/>
-          <line x1="30" y1="35" x2="70" y2="35" stroke="#3ecf8e" stroke-width="3"/>
-          <line x1="30" y1="35" x2="50" y2="70" stroke="#3ecf8e" stroke-width="3"/>
-          <line x1="70" y1="35" x2="50" y2="70" stroke="#3ecf8e" stroke-width="3"/>
-          <circle cx="50" cy="50" r="8" fill="#3ecf8e" opacity="0.6"/>
-        </svg>
-        <span class="logo-text">Nexo</span>
+        <div class="logo">
+          <svg width="32" height="32" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="24" cy="24" r="20" stroke="url(#logoGradient)" stroke-width="2.5" fill="none"/>
+            <circle cx="14" cy="18" r="3" fill="url(#logoGradient)"/>
+            <circle cx="34" cy="18" r="3" fill="url(#logoGradient)"/>
+            <circle cx="24" cy="34" r="3" fill="url(#logoGradient)"/>
+            <line x1="14" y1="18" x2="34" y2="18" stroke="url(#logoGradient)" stroke-width="2" stroke-linecap="round"/>
+            <line x1="14" y1="18" x2="24" y2="34" stroke="url(#logoGradient)" stroke-width="2" stroke-linecap="round"/>
+            <line x1="34" y1="18" x2="24" y2="34" stroke="url(#logoGradient)" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="24" cy="24" r="4" fill="url(#logoGradient)" opacity="0.6"/>
+            <defs>
+              <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#2dd4bf"/>
+                <stop offset="100%" stop-color="#14b8a6"/>
+              </linearGradient>
+            </defs>
+          </svg>
+          <span class="logo-text">Nexo</span>
+        </div>
+        <button class="sidebar-close" id="sidebarClose">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
       </div>
-      
-      <button class="new-chat-btn" onclick="newChat()">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <line x1="12" y1="5" x2="12" y2="19"></line>
-          <line x1="5" y1="12" x2="19" y2="12"></line>
-        </svg>
-        Nova conversa
-      </button>
 
       <div class="sidebar-content">
-        <p class="sidebar-label">Conversas recentes</p>
-        <p class="sidebar-empty">Nenhuma conversa ainda</p>
+        <button class="new-chat-btn" id="newChatBtn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+          Nova conversa
+        </button>
+
+        <div class="conversations-section">
+          <p class="section-title">Conversas recentes</p>
+          <p class="empty-state">Nenhuma conversa ainda</p>
+        </div>
       </div>
 
       <div class="sidebar-footer">
@@ -437,39 +61,66 @@
       </div>
     </aside>
 
-    <!-- Main -->
+    <!-- Mobile menu button -->
+    <button class="menu-btn" id="menuBtn">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 12h18M3 6h18M3 18h18"/>
+      </svg>
+    </button>
+
+    <!-- Main content -->
     <main class="main">
       <!-- Welcome screen -->
-      <div class="welcome" id="welcome">
-        <svg class="welcome-logo" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="50" cy="50" r="45" stroke="#3ecf8e" stroke-width="4" fill="none"/>
-          <circle cx="30" cy="35" r="6" fill="#3ecf8e"/>
-          <circle cx="70" cy="35" r="6" fill="#3ecf8e"/>
-          <circle cx="50" cy="70" r="6" fill="#3ecf8e"/>
-          <line x1="30" y1="35" x2="70" y2="35" stroke="#3ecf8e" stroke-width="3"/>
-          <line x1="30" y1="35" x2="50" y2="70" stroke="#3ecf8e" stroke-width="3"/>
-          <line x1="70" y1="35" x2="50" y2="70" stroke="#3ecf8e" stroke-width="3"/>
-          <circle cx="50" cy="50" r="8" fill="#3ecf8e" opacity="0.6"/>
-        </svg>
-        <h1>Ola, sou o Nexo</h1>
-        <p>Como posso te ajudar hoje?</p>
-
-        <div class="suggestions">
-          <div class="suggestion" onclick="sendMessage('Me ajude a escrever um email profissional')">
-            <div class="suggestion-title">Escrever email</div>
-            <div class="suggestion-desc">Ajuda com emails profissionais</div>
+      <div class="welcome-screen" id="welcomeScreen">
+        <div class="welcome-content">
+          <div class="welcome-logo">
+            <svg width="64" height="64" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="24" cy="24" r="20" stroke="url(#welcomeGradient)" stroke-width="2.5" fill="none"/>
+              <circle cx="14" cy="18" r="3" fill="url(#welcomeGradient)"/>
+              <circle cx="34" cy="18" r="3" fill="url(#welcomeGradient)"/>
+              <circle cx="24" cy="34" r="3" fill="url(#welcomeGradient)"/>
+              <line x1="14" y1="18" x2="34" y2="18" stroke="url(#welcomeGradient)" stroke-width="2" stroke-linecap="round"/>
+              <line x1="14" y1="18" x2="24" y2="34" stroke="url(#welcomeGradient)" stroke-width="2" stroke-linecap="round"/>
+              <line x1="34" y1="18" x2="24" y2="34" stroke="url(#welcomeGradient)" stroke-width="2" stroke-linecap="round"/>
+              <circle cx="24" cy="24" r="4" fill="url(#welcomeGradient)" opacity="0.6"/>
+              <defs>
+                <linearGradient id="welcomeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#2dd4bf"/>
+                  <stop offset="100%" stop-color="#14b8a6"/>
+                </linearGradient>
+              </defs>
+            </svg>
           </div>
-          <div class="suggestion" onclick="sendMessage('Explique um conceito de programacao')">
-            <div class="suggestion-title">Explicar codigo</div>
-            <div class="suggestion-desc">Conceitos de programacao</div>
-          </div>
-          <div class="suggestion" onclick="sendMessage('Me de ideias para um projeto')">
-            <div class="suggestion-title">Ideias criativas</div>
-            <div class="suggestion-desc">Brainstorm de projetos</div>
-          </div>
-          <div class="suggestion" onclick="sendMessage('Resuma um texto para mim')">
-            <div class="suggestion-title">Resumir texto</div>
-            <div class="suggestion-desc">Resumos rapidos</div>
+          <h1 class="welcome-title">Ola, eu sou o Nexo</h1>
+          <p class="welcome-subtitle">Uma IA leve e inteligente para criar, descobrir e resolver.</p>
+          
+          <div class="suggestions">
+            <button class="suggestion-btn" data-suggestion="Me ajude a escrever um email profissional">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+              </svg>
+              Me ajude a escrever um email profissional
+            </button>
+            <button class="suggestion-btn" data-suggestion="Explique como funciona a inteligencia artificial">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/>
+              </svg>
+              Explique como funciona a inteligencia artificial
+            </button>
+            <button class="suggestion-btn" data-suggestion="Crie uma lista de tarefas para o meu dia">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+              </svg>
+              Crie uma lista de tarefas para o meu dia
+            </button>
+            <button class="suggestion-btn" data-suggestion="Me de dicas para aprender programacao">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="16 18 22 12 16 6"/>
+                <polyline points="8 6 2 12 8 18"/>
+              </svg>
+              Me de dicas para aprender programacao
+            </button>
           </div>
         </div>
       </div>
@@ -477,129 +128,30 @@
       <!-- Chat area -->
       <div class="chat-area" id="chatArea">
         <div class="messages" id="messages"></div>
-        <div class="loading" id="loading">
-          <div class="message-avatar" style="background-color: rgba(62, 207, 142, 0.2);">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3ecf8e" stroke-width="2">
-              <circle cx="12" cy="12" r="3"></circle>
-              <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
-            </svg>
-          </div>
-          <div class="loading-dots">
-            <div class="loading-dot"></div>
-            <div class="loading-dot"></div>
-            <div class="loading-dot"></div>
-          </div>
-        </div>
       </div>
 
-      <!-- Input -->
-      <div class="input-area">
-        <div class="input-container">
-          <div class="input-box">
-            <textarea 
-              id="messageInput" 
-              placeholder="Escreva sua mensagem..." 
-              rows="1"
-              onkeydown="handleKeyDown(event)"
-              oninput="autoResize(this); updateSendButton()"
-            ></textarea>
-            <button class="send-btn" id="sendBtn" onclick="sendCurrentMessage()">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="22" y1="2" x2="11" y2="13"></line>
-                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-              </svg>
-            </button>
-          </div>
-          <p class="input-hint">Nexo pode cometer erros. Verifique informacoes importantes.</p>
+      <!-- Chat input -->
+      <div class="chat-input-container">
+        <div class="chat-input-wrapper">
+          <textarea 
+            id="messageInput" 
+            placeholder="Escreva sua mensagem..." 
+            rows="1"
+          ></textarea>
+          <button class="send-btn" id="sendBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+            </svg>
+          </button>
         </div>
+        <p class="disclaimer">Nexo pode cometer erros. Verifique informacoes importantes.</p>
       </div>
     </main>
   </div>
 
-  <script>
-    const messageInput = document.getElementById('messageInput');
-    const sendBtn = document.getElementById('sendBtn');
-    const messagesContainer = document.getElementById('messages');
-    const chatArea = document.getElementById('chatArea');
-    const welcome = document.getElementById('welcome');
-    const loading = document.getElementById('loading');
+  <!-- Overlay for mobile sidebar -->
+  <div class="overlay" id="overlay"></div>
 
-    function autoResize(textarea) {
-      textarea.style.height = 'auto';
-      textarea.style.height = Math.min(textarea.scrollHeight, 200) + 'px';
-    }
-
-    function updateSendButton() {
-      if (messageInput.value.trim()) {
-        sendBtn.classList.add('active');
-      } else {
-        sendBtn.classList.remove('active');
-      }
-    }
-
-    function handleKeyDown(e) {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        sendCurrentMessage();
-      }
-    }
-
-    function sendCurrentMessage() {
-      const message = messageInput.value.trim();
-      if (!message) return;
-      
-      messageInput.value = '';
-      messageInput.style.height = 'auto';
-      updateSendButton();
-      
-      sendMessage(message);
-    }
-
-    function sendMessage(message) {
-      // Mostra area de chat
-      welcome.style.display = 'none';
-      chatArea.classList.add('active');
-
-      // Adiciona mensagem do usuario
-      addMessage(message, 'user');
-
-      // Mostra loading
-      loading.classList.add('active');
-      chatArea.scrollTop = chatArea.scrollHeight;
-
-      // TODO: Conecte sua IA aqui
-      // Exemplo basico de resposta:
-      setTimeout(() => {
-        loading.classList.remove('active');
-        
-        const resposta = "Ola! Sou o Nexo. Esta e uma resposta de exemplo - conecte sua IA aqui.";
-        addMessage(resposta, 'assistant');
-        
-        chatArea.scrollTop = chatArea.scrollHeight;
-      }, 1000);
-    }
-
-    function addMessage(content, role) {
-      const messageDiv = document.createElement('div');
-      messageDiv.className = `message ${role}`;
-      
-      const avatarIcon = role === 'user' 
-        ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>'
-        : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path></svg>';
-
-      messageDiv.innerHTML = `
-        <div class="message-avatar">${avatarIcon}</div>
-        <div class="message-content">${content}</div>
-      `;
-      
-      messagesContainer.appendChild(messageDiv);
-    }
-
-    function newChat() {
-      messagesContainer.innerHTML = '';
-      chatArea.classList.remove('active');
-      welcome.style.display = 'flex';
-    }
-  </script>
+  <script src="script.js"></script>
 </body>
 </html>
