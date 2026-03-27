@@ -26,13 +26,19 @@ from minddriveai.storage.repositories import (
     SettingsRepository,
     SummaryRepository,
 )
+from minddriveai.ui.theme import get_theme
 
 
 class MindDriveApp:
     def __init__(self, root: tk.Tk) -> None:
         self.root = root
         self.root.title("MindDriveAI")
-        self.root.geometry("1200x760")
+        self.root.geometry("1280x800")
+        self.root.minsize(1080, 700)
+
+        self.theme = get_theme()
+        self.root.configure(bg=self.theme.bg_app)
+        self._setup_styles()
 
         self.paths = build_paths()
         self.logger = configure_logging(self.paths.logs_dir / "app.log")
@@ -57,60 +63,268 @@ class MindDriveApp:
         self._bootstrap_api_key()
         self._poll_queue()
 
+    def _setup_styles(self) -> None:
+        style = ttk.Style(self.root)
+        style.theme_use("clam")
+
+        style.configure("App.TFrame", background=self.theme.bg_app)
+        style.configure("Sidebar.TFrame", background=self.theme.bg_sidebar)
+        style.configure("Panel.TFrame", background=self.theme.bg_panel)
+        style.configure("Card.TFrame", background=self.theme.bg_card)
+
+        style.configure(
+            "Brand.TLabel",
+            background=self.theme.bg_sidebar,
+            foreground=self.theme.text_primary,
+            font=self.theme.font_logo,
+        )
+        style.configure(
+            "Muted.TLabel",
+            background=self.theme.bg_sidebar,
+            foreground=self.theme.text_secondary,
+            font=("Segoe UI", 9),
+        )
+        style.configure(
+            "Status.TLabel",
+            background=self.theme.bg_panel,
+            foreground=self.theme.text_secondary,
+            font=("Segoe UI", 9),
+        )
+
+        style.configure(
+            "Primary.TButton",
+            background=self.theme.accent,
+            foreground="#ffffff",
+            bordercolor=self.theme.accent,
+            focusthickness=0,
+            font=("Segoe UI Semibold", 10),
+            padding=(14, 8),
+        )
+        style.map(
+            "Primary.TButton",
+            background=[("active", self.theme.accent_hover), ("pressed", "#4338ca")],
+            foreground=[("disabled", "#cbd5e1")],
+        )
+
+        style.configure(
+            "Secondary.TButton",
+            background=self.theme.bg_card,
+            foreground=self.theme.text_primary,
+            bordercolor=self.theme.border,
+            focusthickness=0,
+            font=("Segoe UI", 10),
+            padding=(12, 8),
+        )
+        style.map(
+            "Secondary.TButton",
+            background=[("active", "#243453"), ("pressed", "#2c4169")],
+            bordercolor=[("active", self.theme.accent)],
+        )
+
+        style.configure(
+            "Danger.TButton",
+            background="#2a1520",
+            foreground="#fecaca",
+            bordercolor="#7f1d1d",
+            focusthickness=0,
+            font=("Segoe UI", 10),
+            padding=(12, 8),
+        )
+        style.map(
+            "Danger.TButton",
+            background=[("active", "#3b1625"), ("pressed", "#4a1628")],
+        )
+
+        style.configure(
+            "Warning.TButton",
+            background="#2a2112",
+            foreground="#fde68a",
+            bordercolor="#854d0e",
+            focusthickness=0,
+            font=("Segoe UI", 10),
+            padding=(12, 8),
+        )
+        style.map(
+            "Warning.TButton",
+            background=[("active", "#3a2c14"), ("pressed", "#473312")],
+        )
+
     def _build_ui(self) -> None:
-        container = ttk.Panedwindow(self.root, orient=tk.HORIZONTAL)
+        root_pad = ttk.Frame(self.root, style="App.TFrame", padding=self.theme.spacing_lg)
+        root_pad.pack(fill=tk.BOTH, expand=True)
+
+        container = ttk.Panedwindow(root_pad, orient=tk.HORIZONTAL)
         container.pack(fill=tk.BOTH, expand=True)
 
-        sidebar = ttk.Frame(container, width=280)
+        sidebar = ttk.Frame(container, style="Sidebar.TFrame", padding=(16, 16, 14, 16), width=320)
         container.add(sidebar, weight=1)
 
-        main = ttk.Frame(container)
-        container.add(main, weight=4)
+        main = ttk.Frame(container, style="Panel.TFrame", padding=(16, 16, 16, 16))
+        container.add(main, weight=5)
 
-        btns = ttk.Frame(sidebar)
-        btns.pack(fill=tk.X, padx=8, pady=8)
-        ttk.Button(btns, text="Nova", command=self.new_conversation).pack(side=LEFT, padx=2)
-        ttk.Button(btns, text="Renomear", command=self.rename_conversation).pack(side=LEFT, padx=2)
-        ttk.Button(btns, text="Excluir", command=self.delete_conversation).pack(side=LEFT, padx=2)
+        header = ttk.Frame(sidebar, style="Sidebar.TFrame")
+        header.pack(fill=tk.X, pady=(0, 12))
+        ttk.Label(header, text="◆ MindDriveAI", style="Brand.TLabel").pack(anchor="w")
+        ttk.Label(header, text="Assistente local com Gemini", style="Muted.TLabel").pack(anchor="w")
 
-        self.conversation_list = tk.Listbox(sidebar)
-        self.conversation_list.pack(fill=tk.BOTH, expand=True, padx=8, pady=8)
+        btns = ttk.Frame(sidebar, style="Sidebar.TFrame")
+        btns.pack(fill=tk.X, pady=(0, 10))
+
+        ttk.Button(
+            btns,
+            text="＋ Nova",
+            style="Primary.TButton",
+            command=self.new_conversation,
+        ).pack(fill=tk.X, pady=(0, 8))
+
+        row = ttk.Frame(btns, style="Sidebar.TFrame")
+        row.pack(fill=tk.X)
+        ttk.Button(
+            row,
+            text="✎ Renomear",
+            style="Secondary.TButton",
+            command=self.rename_conversation,
+        ).pack(side=LEFT, expand=True, fill=tk.X, padx=(0, 4))
+        ttk.Button(
+            row,
+            text="🗑 Excluir",
+            style="Danger.TButton",
+            command=self.delete_conversation,
+        ).pack(side=LEFT, expand=True, fill=tk.X, padx=(4, 0))
+
+        list_wrap = tk.Frame(sidebar, bg=self.theme.bg_card, highlightbackground=self.theme.border)
+        list_wrap.pack(fill=tk.BOTH, expand=True, pady=(8, 0))
+
+        self.conversation_list = tk.Listbox(
+            list_wrap,
+            bg=self.theme.bg_card,
+            fg=self.theme.text_primary,
+            selectbackground="#283a60",
+            selectforeground="#ffffff",
+            relief="flat",
+            borderwidth=0,
+            highlightthickness=0,
+            activestyle="none",
+            font=("Segoe UI", 10),
+        )
+        self.conversation_list.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
         self.conversation_list.bind(
             "<<ListboxSelect>>", lambda _: self.open_selected_conversation()
         )
 
-        chat_frame = ttk.Frame(main)
-        chat_frame.pack(fill=tk.BOTH, expand=True, padx=8, pady=8)
+        chat_card = tk.Frame(
+            main,
+            bg=self.theme.bg_card,
+            highlightbackground=self.theme.border,
+            highlightthickness=1,
+        )
+        chat_card.pack(fill=tk.BOTH, expand=True)
 
-        self.chat_text = tk.Text(chat_frame, wrap="word", state="disabled")
+        chat_frame = ttk.Frame(chat_card, style="Card.TFrame")
+        chat_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
+        self.chat_text = tk.Text(
+            chat_frame,
+            wrap="word",
+            state="disabled",
+            bg=self.theme.bg_card,
+            fg=self.theme.text_primary,
+            relief="flat",
+            borderwidth=0,
+            insertbackground=self.theme.text_primary,
+            spacing1=2,
+            spacing2=4,
+            spacing3=6,
+            font=self.theme.font_chat,
+            padx=10,
+            pady=10,
+        )
+        self.chat_text.tag_configure("user", foreground="#c7d2fe")
+        self.chat_text.tag_configure("assistant", foreground="#99f6e4")
+        self.chat_text.tag_configure("meta", foreground=self.theme.text_muted)
+
         chat_scroll = ttk.Scrollbar(chat_frame, orient=VERTICAL, command=self.chat_text.yview)
         self.chat_text.configure(yscrollcommand=chat_scroll.set)
         self.chat_text.pack(side=LEFT, fill=tk.BOTH, expand=True)
         chat_scroll.pack(side=RIGHT, fill=tk.Y)
 
-        self.status_label = ttk.Label(main, text="Pronto")
-        self.status_label.pack(fill=tk.X, padx=8, pady=4)
+        status_frame = ttk.Frame(main, style="Panel.TFrame")
+        status_frame.pack(fill=tk.X, pady=(10, 8))
+        self.status_label = ttk.Label(
+            status_frame,
+            text="● Pronto",
+            style="Status.TLabel",
+            anchor="w",
+        )
+        self.status_label.pack(fill=tk.X)
 
-        input_frame = ttk.Frame(main)
-        input_frame.pack(fill=tk.X, padx=8, pady=8)
-        self.input_text = tk.Text(input_frame, height=4, wrap="word")
+        input_card = tk.Frame(
+            main,
+            bg=self.theme.bg_input,
+            highlightbackground=self.theme.border,
+            highlightthickness=1,
+        )
+        input_card.pack(fill=tk.X)
+
+        input_frame = ttk.Frame(input_card, style="Panel.TFrame")
+        input_frame.pack(fill=tk.X, padx=10, pady=10)
+
+        self.input_text = tk.Text(
+            input_frame,
+            height=5,
+            wrap="word",
+            bg="#0b1327",
+            fg=self.theme.text_primary,
+            relief="flat",
+            borderwidth=0,
+            insertbackground=self.theme.cyan,
+            font=("Segoe UI", 11),
+            padx=12,
+            pady=10,
+        )
         self.input_text.pack(fill=tk.X, side=LEFT, expand=True)
         self.input_text.bind("<Return>", self._on_enter)
         self.input_text.bind("<Shift-Return>", self._on_shift_enter)
 
-        actions = ttk.Frame(main)
-        actions.pack(fill=tk.X, padx=8, pady=8)
-        ttk.Button(actions, text="Enviar", command=self.send_message).pack(side=LEFT)
-        ttk.Button(actions, text="Parar geração", command=self.stop_generation).pack(
-            side=LEFT, padx=4
+        actions = ttk.Frame(main, style="Panel.TFrame")
+        actions.pack(fill=tk.X, pady=(10, 0))
+        ttk.Button(actions, text="Enviar", style="Primary.TButton", command=self.send_message).pack(
+            side=LEFT
         )
-        ttk.Button(actions, text="Exportar TXT", command=self.export_txt).pack(side=LEFT, padx=4)
-        ttk.Button(actions, text="Exportar MD", command=self.export_md).pack(side=LEFT, padx=4)
+        ttk.Button(
+            actions,
+            text="Parar geração",
+            style="Warning.TButton",
+            command=self.stop_generation,
+        ).pack(side=LEFT, padx=8)
+        ttk.Button(
+            actions,
+            text="Exportar TXT",
+            style="Secondary.TButton",
+            command=self.export_txt,
+        ).pack(side=LEFT, padx=8)
+        ttk.Button(
+            actions,
+            text="Exportar MD",
+            style="Secondary.TButton",
+            command=self.export_md,
+        ).pack(side=LEFT)
+
+    def _set_status(self, text: str, state: str = "ready") -> None:
+        palette = {
+            "ready": ("●", self.theme.success),
+            "loading": ("●", self.theme.warning),
+            "error": ("●", self.theme.error),
+            "info": ("●", self.theme.cyan),
+        }
+        dot, color = palette.get(state, ("●", self.theme.text_secondary))
+        self.status_label.config(text=f"{dot} {text}", foreground=color)
 
     def _bootstrap_api_key(self) -> None:
         env_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
         if env_key:
             self.service = GeminiService(env_key)
+            self._set_status("API key carregada por variável de ambiente", "info")
             return
 
         ask_saved = messagebox.askyesno("MindDriveAI", "Usar API key salva criptografada?")
@@ -120,6 +334,7 @@ class MindDriveApp:
                 try:
                     api_key = self.secret_store.load_api_key(pwd)
                     self.service = GeminiService(api_key)
+                    self._set_status("API key criptografada carregada", "info")
                     return
                 except Exception as exc:
                     messagebox.showerror("Erro", f"Falha ao carregar chave: {exc}")
@@ -127,6 +342,7 @@ class MindDriveApp:
         prompt_key = simpledialog.askstring("Gemini API Key", "Cole sua API key:", show="*")
         if not prompt_key:
             messagebox.showwarning("Sem chave", "Aplicativo iniciado sem API key.")
+            self._set_status("Sem API key configurada", "error")
             return
         should_save = messagebox.askyesno(
             "Salvar chave",
@@ -137,6 +353,7 @@ class MindDriveApp:
             if pwd:
                 self.secret_store.save_api_key(prompt_key, pwd)
         self.service = GeminiService(prompt_key)
+        self._set_status("Pronto", "ready")
 
     def _poll_queue(self) -> None:
         while True:
@@ -146,24 +363,22 @@ class MindDriveApp:
                 break
 
             if kind == "chunk":
-                self._append_chat(payload, prefix="", newline=False)
+                self._append_chat(payload, "assistant", newline=False)
             elif kind == "done":
-                self.status_label.config(text="Pronto")
-                self._append_chat("\n", prefix="", newline=False)
+                self._set_status("Pronto", "ready")
+                self._append_chat("\n", "meta", newline=False)
             elif kind == "status":
-                self.status_label.config(text=payload)
+                self._set_status(payload, "info")
             elif kind == "error":
-                self.status_label.config(text="Erro")
+                self._set_status("Erro", "error")
                 messagebox.showerror("Erro", payload)
 
         self.root.after(80, self._poll_queue)
 
-    def _append_chat(self, text: str, prefix: str = "", newline: bool = True) -> None:
+    def _append_chat(self, text: str, tag: str, newline: bool = True) -> None:
         self.chat_text.configure(state="normal")
-        line = f"{prefix}{text}"
-        if newline:
-            line += "\n"
-        self.chat_text.insert(END, line)
+        content = text + ("\n" if newline else "")
+        self.chat_text.insert(END, content, tag)
         self.chat_text.see(END)
         self.chat_text.configure(state="disabled")
 
@@ -182,7 +397,7 @@ class MindDriveApp:
         self.conversation_list.delete(0, END)
         self.conversations = self.conv_repo.list_all()
         for convo in self.conversations:
-            self.conversation_list.insert(END, convo.title)
+            self.conversation_list.insert(END, f"●  {convo.title}")
 
     def new_conversation(self) -> None:
         title = simpledialog.askstring("Nova conversa", "Título:") or "Nova conversa"
@@ -204,7 +419,9 @@ class MindDriveApp:
 
         messages = self.msg_repo.list_by_conversation(convo.id)
         for msg in messages:
-            self._append_chat(msg.content, prefix=f"{msg.role.upper()}: ")
+            label = "Você" if msg.role == "user" else "MindDriveAI"
+            tag = "user" if msg.role == "user" else "assistant"
+            self._append_chat(f"{label}: {msg.content}", tag)
 
     def rename_conversation(self) -> None:
         cid = self.current_conversation_id
@@ -238,10 +455,10 @@ class MindDriveApp:
 
         assert self.current_conversation_id is not None
         self.msg_repo.add(self.current_conversation_id, "user", text)
-        self._append_chat(text, prefix="USER: ")
-        self._append_chat("ASSISTANT: ", newline=False)
+        self._append_chat(f"Você: {text}", "user")
+        self._append_chat("MindDriveAI: ", "assistant", newline=False)
         self.input_text.delete("1.0", END)
-        self.status_label.config(text="Gerando...")
+        self._set_status("Gerando resposta...", "loading")
         self.stop_flag[0] = False
 
         worker = threading.Thread(
@@ -317,7 +534,7 @@ class MindDriveApp:
 
     def stop_generation(self) -> None:
         self.stop_flag[0] = True
-        self.status_label.config(text="Interrompido")
+        self._set_status("Interrompido", "warning")
 
     def _export(self, ext: str) -> None:
         cid = self.current_conversation_id
