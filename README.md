@@ -38,7 +38,7 @@ pyinstaller --clean --noconfirm pyinstaller\MindDriveAI.spec
 
 ### `--onefile`
 ```bat
-pyinstaller --clean --noconfirm --onefile --windowed --name MindDriveAI-OneFile --icon assets\icon.ico src\minddriveai\main.py
+pyinstaller --clean --noconfirm --onefile --windowed --name MindDriveAI-OneFile --icon src\assets\icon.ico src\minddriveai\main.py
 ```
 
 ### Comparativo PyInstaller
@@ -89,7 +89,7 @@ pyinstaller --clean --noconfirm --onefile --windowed --name MindDriveAI-OneFile 
 - Telemetria local agregada (opt-in), sem envio externo.
 
 ## Troubleshooting
-- Erro de ícone no build: substitua `assets/icon.ico` por ícone real.
+- Erro de ícone no build: substitua `src/assets/icon.ico` por ícone real.
 - API key inválida: gere nova key e teste com variável de ambiente.
 - Sem rede: o app mostrará erro de conectividade.
 - 429: aguarde; o app faz retry limitado.

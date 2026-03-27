@@ -8,7 +8,7 @@ a = Analysis(
     ['src/minddriveai/main.py'],
     pathex=['.'],
     binaries=[],
-    datas=[('assets/icon.ico', 'assets')],
+    datas=[('src/assets/icon.ico', 'assets')],
     hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},
@@ -29,7 +29,7 @@ exe = EXE(
     strip=False,
     upx=True,
     console=False,
-    icon='assets/icon.ico',
+    icon='src/assets/icon.ico',
 )
 coll = COLLECT(
     exe,
