@@ -1,50 +1,133 @@
-"use client"
+'use client'
 
-import { useState } from "react"
-import { ChatSidebar } from "@/components/chat-sidebar"
-import { ChatArea } from "@/components/chat-area"
-import { ChatInput } from "@/components/chat-input"
-import { WelcomeScreen } from "@/components/welcome-screen"
-
-export interface Message {
-  id: string
-  content: string
-  role: "user" | "assistant"
-}
+import { useState, useEffect, useCallback } from 'react'
+import { useChat } from '@ai-sdk/react'
+import { DefaultChatTransport } from 'ai'
+import { ChatSidebar } from '@/components/chat-sidebar'
+import { ChatArea } from '@/components/chat-area'
+import { ChatInput } from '@/components/chat-input'
+import { WelcomeScreen } from '@/components/welcome-screen'
+import { SettingsDialog } from '@/components/settings-dialog'
+import { useConversations } from '@/hooks/use-conversations'
+import { useSettings } from '@/hooks/use-settings'
+import { toast } from 'sonner'
 
 export default function Home() {
-  const [messages, setMessages] = useState<Message[]>([])
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  
+  const { settings } = useSettings()
+  const {
+    conversations,
+    currentConversation,
+    currentConversationId,
+    isLoaded: conversationsLoaded,
+    createConversation,
+    selectConversation,
+    updateConversationMessages,
+    renameConversation,
+    deleteConversation,
+    exportConversation,
+  } = useConversations()
 
-  const handleSendMessage = async (content: string) => {
-    // Adiciona mensagem do usuário
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      content,
-      role: "user",
+  // Configuracao do chat com AI SDK
+  const { messages, sendMessage, status, setMessages, stop } = useChat({
+    transport: new DefaultChatTransport({ 
+      api: '/api/chat',
+      prepareSendMessagesRequest: ({ messages }) => ({
+        body: {
+          messages,
+          model: settings.model,
+          temperature: settings.temperature,
+          maxTokens: settings.maxTokens,
+        },
+      }),
+    }),
+    onError: (error) => {
+      console.error('[MindDriveAI] Erro no chat:', error)
+      toast.error('Erro ao enviar mensagem. Tente novamente.')
+    },
+  })
+
+  const isLoading = status === 'streaming' || status === 'submitted'
+
+  // Sincroniza mensagens com a conversa atual
+  useEffect(() => {
+    if (currentConversationId && messages.length > 0) {
+      updateConversationMessages(currentConversationId, messages)
     }
-    setMessages((prev) => [...prev, userMessage])
+  }, [messages, currentConversationId, updateConversationMessages])
 
-    // TODO: Implemente sua IA aqui
-    // Exemplo básico de resposta:
-    setIsLoading(true)
-    
-    // Simula delay (remova quando conectar sua IA)
-    await new Promise((resolve) => setTimeout(resolve, 500))
-    
-    const aiMessage: Message = {
-      id: (Date.now() + 1).toString(),
-      content: "Olá! Sou o Nexo. Esta é uma resposta de exemplo - conecte sua IA aqui.",
-      role: "assistant",
+  // Carrega mensagens quando muda de conversa
+  useEffect(() => {
+    if (currentConversation) {
+      setMessages(currentConversation.messages)
+    } else {
+      setMessages([])
     }
-    setMessages((prev) => [...prev, aiMessage])
-    setIsLoading(false)
-  }
+  }, [currentConversationId, setMessages])
 
-  const handleNewConversation = () => {
+  // Funcao para enviar mensagem
+  const handleSendMessage = useCallback(async (content: string) => {
+    if (!content.trim()) return
+    
+    // Se nao tem conversa atual, cria uma nova
+    if (!currentConversationId) {
+      createConversation()
+    }
+    
+    sendMessage({ text: content })
+  }, [currentConversationId, createConversation, sendMessage])
+
+  // Nova conversa
+  const handleNewConversation = useCallback(() => {
+    createConversation()
     setMessages([])
     setSidebarOpen(false)
+  }, [createConversation, setMessages])
+
+  // Seleciona conversa
+  const handleSelectConversation = useCallback((id: string) => {
+    selectConversation(id)
+    setSidebarOpen(false)
+  }, [selectConversation])
+
+  // Exporta conversa
+  const handleExportConversation = useCallback((id: string) => {
+    const content = exportConversation(id, 'md')
+    if (!content) {
+      toast.error('Erro ao exportar conversa')
+      return
+    }
+    
+    const blob = new Blob([content], { type: 'text/markdown' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `conversa-${new Date().toISOString().slice(0, 10)}.md`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+    
+    toast.success('Conversa exportada com sucesso!')
+  }, [exportConversation])
+
+  // Para geracao
+  const handleStopGeneration = useCallback(() => {
+    stop()
+    toast.info('Geracao interrompida')
+  }, [stop])
+
+  if (!conversationsLoaded) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+          <p className="text-sm text-muted-foreground">Carregando...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -53,17 +136,37 @@ export default function Home() {
         isOpen={sidebarOpen}
         onToggle={() => setSidebarOpen(!sidebarOpen)}
         onNewConversation={handleNewConversation}
+        conversations={conversations}
+        currentConversationId={currentConversationId}
+        onSelectConversation={handleSelectConversation}
+        onRenameConversation={renameConversation}
+        onDeleteConversation={deleteConversation}
+        onExportConversation={handleExportConversation}
+        onOpenSettings={() => setSettingsOpen(true)}
       />
 
       <main className="flex-1 flex flex-col min-w-0">
         {messages.length > 0 ? (
-          <ChatArea messages={messages} isLoading={isLoading} />
+          <ChatArea 
+            messages={messages} 
+            isLoading={isLoading} 
+            onStopGeneration={handleStopGeneration}
+          />
         ) : (
           <WelcomeScreen onSuggestionClick={handleSendMessage} />
         )}
 
-        <ChatInput onSendMessage={handleSendMessage} disabled={isLoading} />
+        <ChatInput 
+          onSendMessage={handleSendMessage} 
+          disabled={isLoading}
+          model={settings.model}
+        />
       </main>
+
+      <SettingsDialog 
+        open={settingsOpen} 
+        onOpenChange={setSettingsOpen} 
+      />
     </div>
   )
 }

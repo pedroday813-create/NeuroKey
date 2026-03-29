@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
+import { Toaster } from '@/components/ui/sonner'
 import './globals.css'
 
 const inter = Inter({ 
@@ -9,9 +10,11 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'Nexo - IA Inteligente',
-  description: 'Nexo é uma IA leve e inteligente para criar, descobrir e resolver.',
+  title: 'MindDriveAI - Assistente de IA Inteligente',
+  description: 'MindDriveAI e um assistente de IA poderoso e intuitivo para criar, descobrir e resolver problemas. Desenvolvido por Pedro Rodrigues Cruz.',
   generator: 'v0.app',
+  authors: [{ name: 'Pedro Rodrigues Cruz' }],
+  keywords: ['IA', 'inteligencia artificial', 'assistente', 'chat', 'Gemini', 'MindDriveAI'],
   icons: {
     icon: [
       {
@@ -32,9 +35,10 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: '#0f0f12',
+  themeColor: '#0a0a0f',
   width: 'device-width',
   initialScale: 1,
+  maximumScale: 1,
 }
 
 export default function RootLayout({
@@ -46,6 +50,7 @@ export default function RootLayout({
     <html lang="pt-BR" className="dark">
       <body className={`${inter.variable} font-sans antialiased`}>
         {children}
+        <Toaster position="top-center" richColors />
         <Analytics />
       </body>
     </html>
