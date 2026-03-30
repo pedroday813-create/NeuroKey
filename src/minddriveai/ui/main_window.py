@@ -1,3 +1,10 @@
+"""
+MindDriveAI - Aplicacao Desktop Principal
+
+Interface desktop moderna com suporte a multiplos provedores de IA
+(Google Gemini e OpenAI/ChatGPT).
+"""
+
 from __future__ import annotations
 
 import os
@@ -8,6 +15,9 @@ from datetime import datetime
 from tkinter import END, LEFT, RIGHT, VERTICAL, messagebox, simpledialog, ttk
 from typing import Literal
 
+from minddriveai.ai.base_provider import AIProvider
+from minddriveai.ai.provider_factory import ProviderFactory, ProviderType
+from minddriveai.ai.provider_validator import ProviderValidator
 from minddriveai.config.paths import build_paths
 from minddriveai.core.exceptions import (
     AuthenticationError,
@@ -15,7 +25,6 @@ from minddriveai.core.exceptions import (
     RateLimitError,
     SafetyBlockedError,
 )
-from minddriveai.core.gemini_service import GeminiService
 from minddriveai.core.summarizer import build_summary_prompt
 from minddriveai.ops.logging_config import configure_logging
 from minddriveai.security.secrets_store import SecretStore
@@ -36,7 +45,7 @@ StatusType = Literal["ready", "loading", "error", "info", "warning", "success"]
 class MindDriveApp:
     """
     Aplicacao principal do MindDriveAI.
-    Interface desktop moderna com integracao ao Gemini AI.
+    Interface desktop moderna com integracao a multiplos provedores de IA.
     """
 
     def __init__(self, root: tk.Tk) -> None:
@@ -67,8 +76,9 @@ class MindDriveApp:
         # Seguranca
         self.secret_store = SecretStore(self.paths.secret_path)
 
-        # Estado
-        self.service: GeminiService | None = None
+        # Estado do provider
+        self.provider: AIProvider | None = None
+        self.current_provider_type: ProviderType = ProviderType.GEMINI
         self.current_conversation_id: str | None = None
         self.stop_flag = [False]
         self.ui_queue: queue.Queue[tuple[str, str]] = queue.Queue()
@@ -78,7 +88,7 @@ class MindDriveApp:
         # Construir UI
         self._build_ui()
         self._load_conversations()
-        self._bootstrap_api_key()
+        self._show_provider_setup()
         self._poll_queue()
 
     def _setup_styles(self) -> None:
@@ -314,12 +324,56 @@ class MindDriveApp:
         # Tagline
         tagline = tk.Label(
             header,
-            text="Assistente de IA local com Gemini",
+            text="Assistente de IA local",
             font=self.theme.font_sm,
             fg=self.theme.text_muted,
             bg=self.theme.bg_sidebar,
         )
         tagline.pack(anchor="w", pady=(4, 0))
+
+        # === PROVIDER INDICATOR ===
+        self.provider_frame = tk.Frame(
+            sidebar_inner,
+            bg=self.theme.bg_card,
+            highlightbackground=self.theme.border,
+            highlightthickness=1,
+        )
+        self.provider_frame.pack(fill=tk.X, pady=(0, 12))
+
+        provider_inner = tk.Frame(self.provider_frame, bg=self.theme.bg_card)
+        provider_inner.pack(fill=tk.X, padx=10, pady=8)
+
+        self.provider_indicator = tk.Label(
+            provider_inner,
+            text="●",
+            font=("Segoe UI", 8),
+            fg=self.theme.warning,
+            bg=self.theme.bg_card,
+        )
+        self.provider_indicator.pack(side=LEFT, padx=(0, 6))
+
+        self.provider_label = tk.Label(
+            provider_inner,
+            text="Nenhum provider configurado",
+            font=self.theme.font_xs,
+            fg=self.theme.text_secondary,
+            bg=self.theme.bg_card,
+        )
+        self.provider_label.pack(side=LEFT, fill=tk.X, expand=True)
+
+        config_btn = tk.Button(
+            provider_inner,
+            text="Configurar",
+            font=self.theme.font_xs,
+            fg=self.theme.accent,
+            bg=self.theme.bg_card,
+            activebackground=self.theme.bg_hover,
+            activeforeground=self.theme.accent,
+            relief="flat",
+            cursor="hand2",
+            command=self._show_provider_config,
+        )
+        config_btn.pack(side=RIGHT)
 
         # === BOTAO NOVA CONVERSA ===
         new_btn = ttk.Button(
@@ -341,8 +395,8 @@ class MindDriveApp:
 
         search_icon = tk.Label(
             search_frame,
-            text="🔍",
-            font=("Segoe UI", 10),
+            text="Q",
+            font=("Segoe UI", 9),
             fg=self.theme.text_muted,
             bg=self.theme.bg_card,
         )
@@ -553,7 +607,7 @@ class MindDriveApp:
 
         welcome_desc = tk.Label(
             welcome_content,
-            text="Seu assistente de IA pessoal, rodando localmente.\nSelecione uma conversa existente ou crie uma nova para comecar.",
+            text="Seu assistente de IA pessoal com suporte a\nGoogle Gemini e OpenAI (ChatGPT).",
             font=self.theme.font_base,
             fg=self.theme.text_secondary,
             bg=self.theme.bg_card,
@@ -566,7 +620,7 @@ class MindDriveApp:
         tips_frame.pack(pady=(24, 0))
 
         tips = [
-            ("Enter", "Enviar mensagem"),
+            ("Enter", "Enviar"),
             ("Shift+Enter", "Nova linha"),
             ("Ctrl+N", "Nova conversa"),
         ]
@@ -652,7 +706,7 @@ class MindDriveApp:
         self.input_text.pack(fill=tk.X)
         self.input_text.bind("<Return>", self._on_enter)
         self.input_text.bind("<Shift-Return>", self._on_shift_enter)
-        self._add_placeholder(self.input_text, "Digite sua mensagem... (Enter para enviar, Shift+Enter para nova linha)")
+        self._add_placeholder(self.input_text, "Digite sua mensagem... (Enter para enviar)")
 
         # Focus no input
         self.input_text.focus_set()
@@ -780,14 +834,33 @@ class MindDriveApp:
         self.status_indicator.config(fg=color)
         self.status_label.config(text=text)
 
-    def _bootstrap_api_key(self) -> None:
-        """Carrega ou solicita a API key."""
-        env_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
-        if env_key:
-            self.service = GeminiService(env_key)
-            self._set_status("API key carregada por variavel de ambiente", "info")
-            return
+    def _update_provider_indicator(self) -> None:
+        """Atualiza o indicador de provider na sidebar."""
+        if self.provider:
+            self.provider_indicator.config(fg=self.theme.success)
+            self.provider_label.config(
+                text=f"{self.current_provider_type.display_name}"
+            )
+        else:
+            self.provider_indicator.config(fg=self.theme.warning)
+            self.provider_label.config(text="Nenhum provider configurado")
 
+    def _show_provider_setup(self) -> None:
+        """Mostra dialogo de configuracao de provider no inicio."""
+        # Primeiro tenta carregar de variaveis de ambiente
+        for provider_type in ProviderType:
+            env_key = os.getenv(provider_type.env_var_name)
+            if env_key:
+                try:
+                    self.provider = ProviderFactory.create(provider_type, env_key)
+                    self.current_provider_type = provider_type
+                    self._update_provider_indicator()
+                    self._set_status(f"API key do {provider_type.display_name} carregada por variavel de ambiente", "info")
+                    return
+                except Exception:
+                    continue
+
+        # Se nao encontrou em env, tenta carregar do secrets_store
         if self.secret_store.exists():
             ask_saved = messagebox.askyesno(
                 "MindDriveAI",
@@ -802,41 +875,244 @@ class MindDriveApp:
                 if pwd:
                     try:
                         api_key = self.secret_store.load_api_key(pwd)
-                        self.service = GeminiService(api_key)
+                        # Por padrao tenta Gemini primeiro
+                        self.provider = ProviderFactory.create(ProviderType.GEMINI, api_key)
+                        self.current_provider_type = ProviderType.GEMINI
+                        self._update_provider_indicator()
                         self._set_status("API key criptografada carregada", "info")
                         return
                     except Exception as exc:
                         messagebox.showerror("Erro", f"Falha ao carregar chave: {exc}")
 
-        prompt_key = simpledialog.askstring(
-            "Gemini API Key",
-            "Cole sua API key do Gemini:\n\n(Obtenha em: https://makersuite.google.com/app/apikey)",
+        # Se nao conseguiu, mostra configurador
+        self._show_provider_config()
+
+    def _show_provider_config(self) -> None:
+        """Mostra dialogo de configuracao de provider."""
+        config_win = tk.Toplevel(self.root)
+        config_win.title("Configurar Provider de IA")
+        config_win.geometry("500x500")
+        config_win.configure(bg=self.theme.bg_panel)
+        config_win.transient(self.root)
+        config_win.grab_set()
+        
+        # Centralizar
+        config_win.update_idletasks()
+        x = (config_win.winfo_screenwidth() // 2) - (500 // 2)
+        y = (config_win.winfo_screenheight() // 2) - (500 // 2)
+        config_win.geometry(f"+{x}+{y}")
+
+        # Container
+        container = tk.Frame(config_win, bg=self.theme.bg_panel)
+        container.pack(fill=tk.BOTH, expand=True, padx=24, pady=24)
+
+        # Titulo
+        tk.Label(
+            container,
+            text="Configurar Provider de IA",
+            font=self.theme.font_semibold_lg,
+            fg=self.theme.text_primary,
+            bg=self.theme.bg_panel,
+        ).pack(anchor="w")
+
+        tk.Label(
+            container,
+            text="Selecione o provider e insira sua API key.",
+            font=self.theme.font_sm,
+            fg=self.theme.text_secondary,
+            bg=self.theme.bg_panel,
+        ).pack(anchor="w", pady=(4, 20))
+
+        # Provider selection
+        provider_var = tk.StringVar(value=self.current_provider_type.value)
+
+        tk.Label(
+            container,
+            text="Provider",
+            font=self.theme.font_semibold_sm,
+            fg=self.theme.text_primary,
+            bg=self.theme.bg_panel,
+        ).pack(anchor="w")
+
+        for ptype in ProviderType:
+            rb_frame = tk.Frame(container, bg=self.theme.bg_panel)
+            rb_frame.pack(fill=tk.X, pady=4)
+            
+            rb = tk.Radiobutton(
+                rb_frame,
+                text=ptype.display_name,
+                variable=provider_var,
+                value=ptype.value,
+                font=self.theme.font_base,
+                fg=self.theme.text_primary,
+                bg=self.theme.bg_panel,
+                selectcolor=self.theme.bg_card,
+                activebackground=self.theme.bg_panel,
+                activeforeground=self.theme.text_primary,
+            )
+            rb.pack(side=LEFT)
+
+        # API Key
+        tk.Label(
+            container,
+            text="API Key",
+            font=self.theme.font_semibold_sm,
+            fg=self.theme.text_primary,
+            bg=self.theme.bg_panel,
+        ).pack(anchor="w", pady=(16, 4))
+
+        key_frame = tk.Frame(
+            container,
+            bg=self.theme.bg_card,
+            highlightbackground=self.theme.border,
+            highlightthickness=1,
+        )
+        key_frame.pack(fill=tk.X)
+
+        key_entry = tk.Entry(
+            key_frame,
+            font=self.theme.font_base,
+            fg=self.theme.text_primary,
+            bg=self.theme.bg_card,
+            insertbackground=self.theme.text_primary,
+            relief="flat",
             show="*",
         )
-        if not prompt_key:
-            messagebox.showwarning(
-                "Sem API Key",
-                "O aplicativo foi iniciado sem API key.\nVoce nao podera enviar mensagens.",
-            )
-            self._set_status("Sem API key configurada", "error")
-            return
+        key_entry.pack(fill=tk.X, padx=10, pady=10)
 
-        should_save = messagebox.askyesno(
-            "Salvar Chave",
-            "Deseja salvar a API key criptografada localmente?\n\nIsso permite usar o app sem digitar a chave novamente.",
+        # Hint
+        hint_label = tk.Label(
+            container,
+            text=ProviderType.GEMINI.api_key_hint,
+            font=self.theme.font_xs,
+            fg=self.theme.text_muted,
+            bg=self.theme.bg_panel,
+            wraplength=450,
         )
-        if should_save:
-            pwd = simpledialog.askstring(
-                "Criar Senha",
-                "Crie uma senha local para proteger sua chave:",
-                show="*",
-            )
-            if pwd:
-                self.secret_store.save_api_key(prompt_key, pwd)
-                messagebox.showinfo("Salvo", "API key salva com sucesso!")
+        hint_label.pack(anchor="w", pady=(4, 0))
 
-        self.service = GeminiService(prompt_key)
-        self._set_status("Pronto", "ready")
+        # Atualizar hint quando provider muda
+        def update_hint(*_: object) -> None:
+            try:
+                ptype = ProviderType.from_string(provider_var.get())
+                hint_label.config(text=ptype.api_key_hint)
+            except ValueError:
+                pass
+
+        provider_var.trace_add("write", update_hint)
+
+        # Status de validacao
+        status_frame = tk.Frame(container, bg=self.theme.bg_panel)
+        status_frame.pack(fill=tk.X, pady=(16, 0))
+
+        status_indicator = tk.Label(
+            status_frame,
+            text="",
+            font=self.theme.font_sm,
+            fg=self.theme.text_muted,
+            bg=self.theme.bg_panel,
+        )
+        status_indicator.pack(anchor="w")
+
+        # Botoes
+        btn_frame = tk.Frame(container, bg=self.theme.bg_panel)
+        btn_frame.pack(fill=tk.X, pady=(20, 0))
+
+        def validate_and_save() -> None:
+            api_key = key_entry.get().strip()
+            try:
+                ptype = ProviderType.from_string(provider_var.get())
+            except ValueError:
+                status_indicator.config(text="Selecione um provider valido.", fg=self.theme.error)
+                return
+
+            if not api_key:
+                status_indicator.config(text="Insira a API key.", fg=self.theme.error)
+                return
+
+            # Validar formato
+            format_result = ProviderValidator.validate_key_format(ptype, api_key)
+            if not format_result.is_valid:
+                status_indicator.config(
+                    text=f"{format_result.message}\n{format_result.details}",
+                    fg=self.theme.error,
+                )
+                return
+
+            status_indicator.config(text="Validando online...", fg=self.theme.warning)
+            config_win.update()
+
+            # Validar online
+            online_result = ProviderValidator.validate_key_online(ptype, api_key)
+            if not online_result.is_valid:
+                status_indicator.config(
+                    text=f"{online_result.message}",
+                    fg=self.theme.error,
+                )
+                return
+
+            # Sucesso - criar provider
+            try:
+                self.provider = ProviderFactory.create(ptype, api_key)
+                self.current_provider_type = ptype
+                self._update_provider_indicator()
+                self._set_status(f"{ptype.display_name} configurado com sucesso!", "success")
+
+                # Perguntar se quer salvar
+                should_save = messagebox.askyesno(
+                    "Salvar Chave",
+                    "Deseja salvar a API key criptografada localmente?\n\n"
+                    "Isso permite usar o app sem digitar a chave novamente.",
+                    parent=config_win,
+                )
+                if should_save:
+                    pwd = simpledialog.askstring(
+                        "Criar Senha",
+                        "Crie uma senha local para proteger sua chave:",
+                        show="*",
+                        parent=config_win,
+                    )
+                    if pwd:
+                        self.secret_store.save_api_key(api_key, pwd)
+                        messagebox.showinfo("Salvo", "API key salva com sucesso!", parent=config_win)
+
+                config_win.destroy()
+
+            except Exception as exc:
+                status_indicator.config(text=f"Erro ao criar provider: {exc}", fg=self.theme.error)
+
+        ttk.Button(
+            btn_frame,
+            text="Validar e Salvar",
+            style="Primary.TButton",
+            command=validate_and_save,
+        ).pack(side=LEFT, padx=(0, 8))
+
+        ttk.Button(
+            btn_frame,
+            text="Cancelar",
+            style="Secondary.TButton",
+            command=config_win.destroy,
+        ).pack(side=LEFT)
+
+        # Opcao de usar sem key (modo limitado)
+        def use_without_key() -> None:
+            self._set_status("Sem provider configurado - envio desabilitado", "warning")
+            self._update_provider_indicator()
+            config_win.destroy()
+
+        tk.Button(
+            container,
+            text="Continuar sem API key (modo somente leitura)",
+            font=self.theme.font_xs,
+            fg=self.theme.text_muted,
+            bg=self.theme.bg_panel,
+            activebackground=self.theme.bg_panel,
+            activeforeground=self.theme.text_secondary,
+            relief="flat",
+            cursor="hand2",
+            command=use_without_key,
+        ).pack(anchor="w", pady=(16, 0))
 
     def _poll_queue(self) -> None:
         """Processa eventos da fila de UI."""
@@ -989,16 +1265,13 @@ class MindDriveApp:
 
     def send_message(self) -> None:
         """Envia uma mensagem."""
-        if not self.service:
-            messagebox.showwarning(
-                "Sem API Key",
-                "Configure a API key antes de enviar mensagens.",
-            )
+        if not self.provider:
+            self._show_provider_config()
             return
 
         # Obter texto (ignorar placeholder)
         text = self.input_text.get("1.0", END).strip()
-        placeholder = "Digite sua mensagem... (Enter para enviar, Shift+Enter para nova linha)"
+        placeholder = "Digite sua mensagem... (Enter para enviar)"
         if not text or text == placeholder:
             return
 
@@ -1021,7 +1294,7 @@ class MindDriveApp:
 
         # Limpar input
         self.input_text.delete("1.0", END)
-        self._add_placeholder(self.input_text, "Digite sua mensagem... (Enter para enviar, Shift+Enter para nova linha)")
+        self._add_placeholder(self.input_text, "Digite sua mensagem... (Enter para enviar)")
 
         # Atualizar status
         self._set_status("Gerando resposta...", "loading")
@@ -1063,11 +1336,18 @@ class MindDriveApp:
     def _generate_worker(self, conversation_id: str, user_text: str) -> None:
         """Worker thread para geracao de resposta."""
         try:
-            assert self.service is not None
+            assert self.provider is not None
             history = self._build_history(conversation_id)
 
-            generator = self.service.stream_reply(
-                model=self.settings.model,
+            # Determinar modelo baseado no provider
+            model = self.settings.model
+            if self.current_provider_type == ProviderType.OPENAI:
+                # Se o modelo configurado e do Gemini, usar padrao do OpenAI
+                if "gemini" in model.lower():
+                    model = self.provider.default_model
+
+            generator = self.provider.stream_reply(
+                model=model,
                 history=history,
                 user_text=user_text,
                 temperature=self.settings.temperature,
@@ -1105,7 +1385,10 @@ class MindDriveApp:
         except (OfflineError, AuthenticationError, RateLimitError, SafetyBlockedError) as exc:
             day = datetime.utcnow().strftime("%Y-%m-%d")
             self.metrics_repo.record(day, 0, 0, is_error=True)
-            self.ui_queue.put(("error", str(exc)))
+            
+            # Diagnosticar erro
+            diagnosis = ProviderValidator.diagnose_error(str(exc))
+            self.ui_queue.put(("error", f"{exc}\n\n{diagnosis}"))
         except Exception as exc:
             self.logger.exception("Erro nao tratado")
             self.ui_queue.put(("error", f"Erro inesperado: {exc}"))

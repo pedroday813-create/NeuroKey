@@ -37,6 +37,7 @@ export default function Home() {
       prepareSendMessagesRequest: ({ messages }) => ({
         body: {
           messages,
+          provider: settings.provider,
           model: settings.model,
           temperature: settings.temperature,
           maxTokens: settings.maxTokens,
@@ -45,7 +46,8 @@ export default function Home() {
     }),
     onError: (error) => {
       console.error('[MindDriveAI] Erro no chat:', error)
-      toast.error('Erro ao enviar mensagem. Tente novamente.')
+      const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido'
+      toast.error(`Erro: ${errorMsg}`)
     },
   })
 
