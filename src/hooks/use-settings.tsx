@@ -1,6 +1,13 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  type ReactNode,
+} from 'react'
 import type { AppSettings, AIConnection } from '@/lib/types'
 import { DEFAULT_SETTINGS, STORAGE_KEYS } from '@/lib/types'
 
@@ -8,7 +15,19 @@ function generateId(): string {
   return `conn_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
 }
 
-export function useSettings() {
+interface SettingsContextValue {
+  settings: AppSettings
+  isLoaded: boolean
+  updateSettings: (updates: Partial<AppSettings>) => void
+  addConnection: (connection: Omit<AIConnection, 'id'>) => string
+  updateConnection: (id: string, updates: Partial<Omit<AIConnection, 'id'>>) => void
+  removeConnection: (id: string) => void
+  setActiveConnection: (id: string) => void
+}
+
+const SettingsContext = createContext<SettingsContextValue | null>(null)
+
+export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS)
   const [isLoaded, setIsLoaded] = useState(false)
 
@@ -40,7 +59,6 @@ export function useSettings() {
     })
   }, [])
 
-  // Atualiza campos gerais (temperatura, tokens, prompt, tema)
   const updateSettings = useCallback(
     (updates: Partial<AppSettings>) => {
       persist((prev) => ({ ...prev, ...updates }))
@@ -48,7 +66,6 @@ export function useSettings() {
     [persist],
   )
 
-  // Adiciona uma nova conexao (e a ativa automaticamente)
   const addConnection = useCallback(
     (connection: Omit<AIConnection, 'id'>): string => {
       const id = generateId()
@@ -62,7 +79,6 @@ export function useSettings() {
     [persist],
   )
 
-  // Atualiza uma conexao existente
   const updateConnection = useCallback(
     (id: string, updates: Partial<Omit<AIConnection, 'id'>>) => {
       persist((prev) => ({
@@ -73,7 +89,6 @@ export function useSettings() {
     [persist],
   )
 
-  // Remove uma conexao
   const removeConnection = useCallback(
     (id: string) => {
       persist((prev) => {
@@ -88,7 +103,6 @@ export function useSettings() {
     [persist],
   )
 
-  // Define a conexao ativa
   const setActiveConnection = useCallback(
     (id: string) => {
       persist((prev) => ({ ...prev, activeConnectionId: id }))
@@ -96,13 +110,27 @@ export function useSettings() {
     [persist],
   )
 
-  return {
-    settings,
-    isLoaded,
-    updateSettings,
-    addConnection,
-    updateConnection,
-    removeConnection,
-    setActiveConnection,
+  return (
+    <SettingsContext.Provider
+      value={{
+        settings,
+        isLoaded,
+        updateSettings,
+        addConnection,
+        updateConnection,
+        removeConnection,
+        setActiveConnection,
+      }}
+    >
+      {children}
+    </SettingsContext.Provider>
+  )
+}
+
+export function useSettings(): SettingsContextValue {
+  const ctx = useContext(SettingsContext)
+  if (!ctx) {
+    throw new Error('useSettings deve ser usado dentro de um SettingsProvider')
   }
+  return ctx
 }
