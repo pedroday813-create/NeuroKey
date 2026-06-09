@@ -10,13 +10,16 @@ import { WelcomeScreen } from '@/components/welcome-screen'
 import { SettingsDialog } from '@/components/settings-dialog'
 import { useConversations } from '@/hooks/use-conversations'
 import { useSettings } from '@/hooks/use-settings'
+import { getActiveConnection } from '@/lib/types'
 import { toast } from 'sonner'
 
 export default function Home() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
-  
-  const { settings } = useSettings()
+
+  const { settings, isLoaded: settingsLoaded } = useSettings()
+  const activeConnection = getActiveConnection(settings)
+
   const {
     conversations,
     currentConversation,
@@ -30,24 +33,26 @@ export default function Home() {
     exportConversation,
   } = useConversations()
 
-  // Configuracao do chat com AI SDK
+  // Configuracao do chat com AI SDK (provider universal)
   const { messages, sendMessage, status, setMessages, stop } = useChat({
-    transport: new DefaultChatTransport({ 
+    transport: new DefaultChatTransport({
       api: '/api/chat',
       prepareSendMessagesRequest: ({ messages }) => ({
         body: {
           messages,
-          provider: settings.provider,
-          model: settings.model,
+          baseURL: activeConnection?.baseURL,
+          apiKey: activeConnection?.apiKey,
+          model: activeConnection?.model,
           temperature: settings.temperature,
           maxTokens: settings.maxTokens,
+          systemPrompt: settings.systemPrompt,
         },
       }),
     }),
     onError: (error) => {
       console.error('[MindDriveAI] Erro no chat:', error)
       const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido'
-      toast.error(`Erro: ${errorMsg}`)
+      toast.error(errorMsg)
     },
   })
 
@@ -70,58 +75,69 @@ export default function Home() {
   }, [currentConversationId, setMessages])
 
   // Funcao para enviar mensagem
-  const handleSendMessage = useCallback(async (content: string) => {
-    if (!content.trim()) return
-    
-    // Se nao tem conversa atual, cria uma nova
-    if (!currentConversationId) {
-      createConversation()
-    }
-    
-    sendMessage({ text: content })
-  }, [currentConversationId, createConversation, sendMessage])
+  const handleSendMessage = useCallback(
+    async (content: string) => {
+      if (!content.trim()) return
 
-  // Nova conversa
+      // Bloqueia envio se nao houver conexao configurada
+      if (!activeConnection) {
+        toast.error('Conecte uma IA primeiro nas configuracoes.')
+        setSettingsOpen(true)
+        return
+      }
+
+      if (!currentConversationId) {
+        createConversation()
+      }
+
+      sendMessage({ text: content })
+    },
+    [currentConversationId, createConversation, sendMessage, activeConnection],
+  )
+
   const handleNewConversation = useCallback(() => {
     createConversation()
     setMessages([])
     setSidebarOpen(false)
   }, [createConversation, setMessages])
 
-  // Seleciona conversa
-  const handleSelectConversation = useCallback((id: string) => {
-    selectConversation(id)
-    setSidebarOpen(false)
-  }, [selectConversation])
+  const handleSelectConversation = useCallback(
+    (id: string) => {
+      selectConversation(id)
+      setSidebarOpen(false)
+    },
+    [selectConversation],
+  )
 
-  // Exporta conversa
-  const handleExportConversation = useCallback((id: string) => {
-    const content = exportConversation(id, 'md')
-    if (!content) {
-      toast.error('Erro ao exportar conversa')
-      return
-    }
-    
-    const blob = new Blob([content], { type: 'text/markdown' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `conversa-${new Date().toISOString().slice(0, 10)}.md`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-    
-    toast.success('Conversa exportada com sucesso!')
-  }, [exportConversation])
+  const handleExportConversation = useCallback(
+    (id: string) => {
+      const content = exportConversation(id, 'md')
+      if (!content) {
+        toast.error('Erro ao exportar conversa')
+        return
+      }
 
-  // Para geracao
+      const blob = new Blob([content], { type: 'text/markdown' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `conversa-${new Date().toISOString().slice(0, 10)}.md`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+
+      toast.success('Conversa exportada com sucesso!')
+    },
+    [exportConversation],
+  )
+
   const handleStopGeneration = useCallback(() => {
     stop()
     toast.info('Geracao interrompida')
   }, [stop])
 
-  if (!conversationsLoaded) {
+  if (!conversationsLoaded || !settingsLoaded) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
@@ -145,30 +161,33 @@ export default function Home() {
         onDeleteConversation={deleteConversation}
         onExportConversation={handleExportConversation}
         onOpenSettings={() => setSettingsOpen(true)}
+        activeConnectionLabel={activeConnection?.label ?? null}
       />
 
       <main className="flex-1 flex flex-col min-w-0">
         {messages.length > 0 ? (
-          <ChatArea 
-            messages={messages} 
-            isLoading={isLoading} 
+          <ChatArea
+            messages={messages}
+            isLoading={isLoading}
             onStopGeneration={handleStopGeneration}
           />
         ) : (
-          <WelcomeScreen onSuggestionClick={handleSendMessage} />
+          <WelcomeScreen
+            onSuggestionClick={handleSendMessage}
+            hasConnection={!!activeConnection}
+            onOpenSettings={() => setSettingsOpen(true)}
+          />
         )}
 
-        <ChatInput 
-          onSendMessage={handleSendMessage} 
+        <ChatInput
+          onSendMessage={handleSendMessage}
           disabled={isLoading}
-          model={settings.model}
+          model={activeConnection?.model}
+          connectionLabel={activeConnection?.label ?? null}
         />
       </main>
 
-      <SettingsDialog 
-        open={settingsOpen} 
-        onOpenChange={setSettingsOpen} 
-      />
+      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
     </div>
   )
 }

@@ -48,6 +48,7 @@ interface ChatSidebarProps {
   onDeleteConversation: (id: string) => void
   onExportConversation: (id: string) => void
   onOpenSettings: () => void
+  activeConnectionLabel: string | null
 }
 
 export function ChatSidebar({
@@ -61,6 +62,7 @@ export function ChatSidebar({
   onDeleteConversation,
   onExportConversation,
   onOpenSettings,
+  activeConnectionLabel,
 }: ChatSidebarProps) {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingTitle, setEditingTitle] = useState('')
@@ -247,14 +249,30 @@ export function ChatSidebar({
 
         {/* Footer */}
         <div className="p-3 border-t border-sidebar-border space-y-2">
-          <Button
-            variant="ghost"
-            className="w-full justify-start gap-2 text-sidebar-foreground hover:bg-sidebar-accent"
+          <button
             onClick={onOpenSettings}
+            className={cn(
+              'w-full flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-left transition-colors',
+              'hover:bg-sidebar-accent',
+            )}
           >
-            <Settings className="h-4 w-4" />
-            Configuracoes
-          </Button>
+            <span
+              className={cn(
+                'flex-shrink-0 h-2 w-2 rounded-full',
+                activeConnectionLabel ? 'bg-accent' : 'bg-muted-foreground/50',
+              )}
+              aria-hidden="true"
+            />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium text-sidebar-foreground truncate">
+                {activeConnectionLabel ?? 'Nenhuma IA conectada'}
+              </p>
+              <p className="text-[11px] text-muted-foreground">
+                {activeConnectionLabel ? 'Conectado' : 'Toque para configurar'}
+              </p>
+            </div>
+            <Settings className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          </button>
           <p className="text-xs text-muted-foreground text-center px-2">
             Desenvolvido por Pedro Rodrigues Cruz
           </p>

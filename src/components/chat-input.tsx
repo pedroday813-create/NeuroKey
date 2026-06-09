@@ -9,9 +9,10 @@ interface ChatInputProps {
   onSendMessage: (message: string) => void
   disabled?: boolean
   model?: string
+  connectionLabel?: string | null
 }
 
-export function ChatInput({ onSendMessage, disabled, model }: ChatInputProps) {
+export function ChatInput({ onSendMessage, disabled, model, connectionLabel }: ChatInputProps) {
   const [message, setMessage] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -50,7 +51,7 @@ export function ChatInput({ onSendMessage, disabled, model }: ChatInputProps) {
   const showCharCount = charCount > 0
 
   // Nome do modelo formatado
-  const modelName = model?.split('/').pop()?.replace(/-/g, ' ') || 'IA'
+  const modelName = model?.split('/').pop()?.replace(/-/g, ' ') || null
 
   return (
     <div className="border-t border-border bg-background/95 backdrop-blur-md p-4">
@@ -104,9 +105,16 @@ export function ChatInput({ onSendMessage, disabled, model }: ChatInputProps) {
         <div className="flex items-center justify-between mt-3 px-1">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Sparkles className="h-3 w-3" />
-            <span className="capitalize">{modelName}</span>
+            {connectionLabel ? (
+              <span>
+                {connectionLabel}
+                {modelName && <span className="capitalize"> · {modelName}</span>}
+              </span>
+            ) : (
+              <span>Nenhuma IA conectada</span>
+            )}
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground hidden sm:block">
             MindDriveAI pode cometer erros. Verifique informacoes importantes.
           </p>
         </div>
