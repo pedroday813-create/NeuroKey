@@ -1,13 +1,10 @@
 'use client'
 
-import { Sparkles, Code, Lightbulb, Pencil, Brain, Zap, Plug } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Sparkles, Code, Lightbulb, Pencil, Brain, Zap } from 'lucide-react'
 import { MindDriveAILogo } from './minddriveai-logo'
 
 interface WelcomeScreenProps {
   onSuggestionClick: (suggestion: string) => void
-  hasConnection: boolean
-  onOpenSettings: () => void
 }
 
 const suggestions = [
@@ -51,7 +48,7 @@ const features = [
   },
 ]
 
-export function WelcomeScreen({ onSuggestionClick, hasConnection, onOpenSettings }: WelcomeScreenProps) {
+export function WelcomeScreen({ onSuggestionClick }: WelcomeScreenProps) {
   return (
     <div className="flex-1 flex flex-col items-center justify-center px-4 py-8 overflow-y-auto">
       <div className="text-center max-w-2xl mx-auto w-full">
@@ -62,79 +59,54 @@ export function WelcomeScreen({ onSuggestionClick, hasConnection, onOpenSettings
 
         {/* Main heading */}
         <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-3 text-balance">
-          {hasConnection ? 'Como posso ajudar voce hoje?' : 'Bem-vindo ao MindDriveAI'}
+          Como posso ajudar voce hoje?
         </h1>
 
         {/* Description */}
         <p className="text-muted-foreground text-base md:text-lg mb-8 text-pretty max-w-lg mx-auto">
-          {hasConnection
-            ? 'MindDriveAI e seu assistente de IA inteligente, pronto para ajudar a criar, descobrir e resolver problemas.'
-            : 'Conecte qualquer inteligencia artificial para comecar. Funciona com OpenAI, Groq, Mistral, DeepSeek, Gemini, modelos locais e muito mais.'}
+          MindDriveAI e seu assistente de IA inteligente, pronto para ajudar a criar, descobrir e resolver problemas.
         </p>
 
-        {!hasConnection ? (
-          /* Estado sem conexao: chama para configurar */
-          <div className="flex flex-col items-center gap-6">
-            <Button size="lg" onClick={onOpenSettings} className="gap-2">
-              <Plug className="h-5 w-5" />
-              Conectar uma IA
-            </Button>
-            <div className="flex items-center justify-center gap-6 flex-wrap">
-              {features.map((feature, index) => (
-                <div
-                  key={index}
-                  className="flex items-center gap-2 text-sm text-muted-foreground"
-                >
-                  <feature.icon className="h-4 w-4 text-accent" />
-                  <span>{feature.title}</span>
-                </div>
-              ))}
+        {/* Features */}
+        <div className="flex items-center justify-center gap-6 mb-10 flex-wrap">
+          {features.map((feature, index) => (
+            <div 
+              key={index}
+              className="flex items-center gap-2 text-sm text-muted-foreground"
+            >
+              <feature.icon className="h-4 w-4 text-accent" />
+              <span>{feature.title}</span>
             </div>
-          </div>
-        ) : (
-          <>
-            {/* Features */}
-            <div className="flex items-center justify-center gap-6 mb-10 flex-wrap">
-              {features.map((feature, index) => (
-                <div
-                  key={index}
-                  className="flex items-center gap-2 text-sm text-muted-foreground"
-                >
-                  <feature.icon className="h-4 w-4 text-accent" />
-                  <span>{feature.title}</span>
-                </div>
-              ))}
-            </div>
+          ))}
+        </div>
 
-            {/* Suggestion cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-xl mx-auto">
-              {suggestions.map((suggestion, index) => (
-                <button
-                  key={index}
-                  onClick={() => onSuggestionClick(suggestion.text)}
-                  className="group flex items-start gap-3 p-4 rounded-xl bg-card border border-border hover:border-accent/40 hover:bg-accent/5 transition-all duration-200 text-left"
-                >
-                  <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center group-hover:bg-accent/20 transition-colors">
-                    <suggestion.icon className="h-5 w-5 text-accent" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground mb-0.5">
-                      {suggestion.title}
-                    </p>
-                    <p className="text-xs text-muted-foreground line-clamp-2">
-                      {suggestion.text}
-                    </p>
-                  </div>
-                </button>
-              ))}
-            </div>
+        {/* Suggestion cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-xl mx-auto">
+          {suggestions.map((suggestion, index) => (
+            <button
+              key={index}
+              onClick={() => onSuggestionClick(suggestion.text)}
+              className="group flex items-start gap-3 p-4 rounded-xl bg-card border border-border hover:border-accent/40 hover:bg-accent/5 transition-all duration-200 text-left"
+            >
+              <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center group-hover:bg-accent/20 transition-colors">
+                <suggestion.icon className="h-5 w-5 text-accent" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-foreground mb-0.5">
+                  {suggestion.title}
+                </p>
+                <p className="text-xs text-muted-foreground line-clamp-2">
+                  {suggestion.text}
+                </p>
+              </div>
+            </button>
+          ))}
+        </div>
 
-            {/* Keyboard hint */}
-            <p className="text-xs text-muted-foreground mt-8">
-              Pressione <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono">Enter</kbd> para enviar
-            </p>
-          </>
-        )}
+        {/* Keyboard hint */}
+        <p className="text-xs text-muted-foreground mt-8">
+          Pressione <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono">Enter</kbd> para enviar
+        </p>
       </div>
     </div>
   )
